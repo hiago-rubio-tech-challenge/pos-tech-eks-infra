@@ -7,11 +7,11 @@ module "vpc" {
   region = var.region
 }
 
-variable "mongo_db_uri" {
-  description = "URL de conexão do MongoDB"
-  type        = string
-  sensitive   = true
-}
+# variable "mongo_db_uri" {
+#   description = "URL de conexão do MongoDB"
+#   type        = string
+#   sensitive   = true
+# }
 
 
 module "eks" {
@@ -20,7 +20,7 @@ module "eks" {
   vpc_id             = module.vpc.id
   private_subnet_ids = module.vpc.private_subnet_ids
   public_subnet_ids  = module.vpc.public_subnet_ids
-  mongo_db_uri       = var.mongo_db_uri
+  # mongo_db_uri       = var.mongo_db_uri
 }
 
 
