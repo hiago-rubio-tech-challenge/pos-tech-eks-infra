@@ -14,11 +14,11 @@ variable "public_subnet_ids" {
   type = list(string)
 }
 
-# variable "mongo_db_uri" {
-#   description = "URL de conexão do MongoDB"
-#   type        = string
-#   sensitive   = true
-# }
+variable "MONGO_URL" {
+  description = "URL de conexão do MongoDB"
+  type        = string
+  sensitive   = true
+}
 
 resource "aws_eks_cluster" "eks" {
 
@@ -115,10 +115,10 @@ resource "kubernetes_deployment" "nodejs_app" {
             container_port = 3000
           }
 
-          # env {
-          #   name  = "MONGO_URL"
-          #   value = var.mongo_db_uri
-          # }
+          env {
+            name  = "MONGO_URL"
+            value = var.MONGO_URL
+          }
         }
       }
     }
