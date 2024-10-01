@@ -1,3 +1,1 @@
 # POS TECH HIAGO EKS CLUSTER
-
-..
