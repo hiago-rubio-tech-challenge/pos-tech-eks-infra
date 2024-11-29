@@ -83,7 +83,30 @@ resource "kubernetes_namespace" "tech_challenge" {
   }
 }
 
-resource "kubernetes_deployment" "nodejs_app" {
+
+resource "kubernetes_service" "nodejs_service" {
+
+  metadata {
+    name      = "nodejs-service"
+    namespace = kubernetes_namespace.tech_challenge.metadata[0].name
+  }
+
+  spec {
+    type = "LoadBalancer"
+
+    selector = {
+      app = kubernetes_deployment.identificacao.metadata[0].name
+    }
+
+    port {
+      protocol    = "TCP"
+      port        = 3000
+      target_port = 3000
+    }
+  }
+}
+
+resource "kubernetes_deployment" "identificacao" {
 
   metadata {
     name      = "nodejs-app"
@@ -109,10 +132,10 @@ resource "kubernetes_deployment" "nodejs_app" {
       spec {
         container {
           name  = "nodejs-app"
-          image = "182028773449.dkr.ecr.us-east-1.amazonaws.com/tech-challenge-hiago:latest"
+          image = "182028773449.dkr.ecr.us-east-1.amazonaws.com/tech-challenge-hiago/identificacao:latest"
 
           port {
-            container_port = 3000
+            container_port = 3001
           }
 
           env {
@@ -125,29 +148,7 @@ resource "kubernetes_deployment" "nodejs_app" {
   }
 }
 
-resource "kubernetes_service" "nodejs_service" {
-
-  metadata {
-    name      = "nodejs-service"
-    namespace = kubernetes_namespace.tech_challenge.metadata[0].name
-  }
-
-  spec {
-    type = "LoadBalancer"
-
-    selector = {
-      app = kubernetes_deployment.nodejs_app.metadata[0].name
-    }
-
-    port {
-      protocol    = "TCP"
-      port        = 3000
-      target_port = 3000
-    }
-  }
-}
-
-resource "kubernetes_horizontal_pod_autoscaler" "nodejs_app_hpa" {
+resource "kubernetes_horizontal_pod_autoscaler" "identificacao_hpa" {
 
   metadata {
     name      = "nodejs-app-hpa"
@@ -158,7 +159,7 @@ resource "kubernetes_horizontal_pod_autoscaler" "nodejs_app_hpa" {
     scale_target_ref {
       api_version = "apps/v1"
       kind        = "Deployment"
-      name        = kubernetes_deployment.nodejs_app.metadata[0].name
+      name        = kubernetes_deployment.identificacao.metadata[0].name
     }
 
     min_replicas                      = 1
@@ -167,6 +168,133 @@ resource "kubernetes_horizontal_pod_autoscaler" "nodejs_app_hpa" {
   }
 }
 
+
+resource "kubernetes_deployment" "admin" {
+
+  metadata {
+    name      = "nodejs-app"
+    namespace = kubernetes_namespace.tech_challenge.metadata[0].name
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "nodejs-app"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "nodejs-app"
+        }
+      }
+
+      spec {
+        container {
+          name  = "nodejs-app"
+          image = "182028773449.dkr.ecr.us-east-1.amazonaws.com/tech-challenge-hiago/admin:latest"
+
+          port {
+            container_port = 3002
+          }
+
+          env {
+            name  = "MONGO_URL"
+            value = var.mongo_db_uri
+          }
+        }
+      }
+    }
+  }
+}
+
+
+resource "kubernetes_horizontal_pod_autoscaler" "admin_hpa" {
+
+  metadata {
+    name      = "nodejs-app-hpa"
+    namespace = kubernetes_namespace.tech_challenge.metadata[0].name
+  }
+
+  spec {
+    scale_target_ref {
+      api_version = "apps/v1"
+      kind        = "Deployment"
+      name        = kubernetes_deployment.admin.metadata[0].name
+    }
+
+    min_replicas                      = 1
+    max_replicas                      = 5
+    target_cpu_utilization_percentage = 50
+  }
+}
+
+
+resource "kubernetes_deployment" "pedido" {
+
+  metadata {
+    name      = "nodejs-app"
+    namespace = kubernetes_namespace.tech_challenge.metadata[0].name
+  }
+
+  spec {
+    replicas = 1
+
+    selector {
+      match_labels = {
+        app = "nodejs-app"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "nodejs-app"
+        }
+      }
+
+      spec {
+        container {
+          name  = "nodejs-app"
+          image = "182028773449.dkr.ecr.us-east-1.amazonaws.com/tech-challenge-hiago/pedido:latest"
+
+          port {
+            container_port = 3003
+          }
+
+          env {
+            name  = "MONGO_URL"
+            value = var.mongo_db_uri
+          }
+        }
+      }
+    }
+  }
+}
+
+
+resource "kubernetes_horizontal_pod_autoscaler" "pedido_hpa" {
+
+  metadata {
+    name      = "nodejs-app-hpa"
+    namespace = kubernetes_namespace.tech_challenge.metadata[0].name
+  }
+
+  spec {
+    scale_target_ref {
+      api_version = "apps/v1"
+      kind        = "Deployment"
+      name        = kubernetes_deployment.pedido.metadata[0].name
+    }
+
+    min_replicas                      = 1
+    max_replicas                      = 5
+    target_cpu_utilization_percentage = 50
+  }
+}
 
 resource "kubernetes_network_policy" "allow-external" {
   metadata {
